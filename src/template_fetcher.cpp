@@ -10,13 +10,17 @@ using namespace cv;
 
 void fetcher(const sensor_msgs::Image::ConstPtr& msg);
 
+// run this class like this:
+// rosrun custom_landmark_2d template_fetcher rgb:=/head_camera/rgb/image_raw
+//
+// it saves a snapshot of the image to the current directory.
 int main( int argc, char** argv ) {
 
   ros::init(argc, argv, "template_fetcher");
 
   ros::NodeHandle n;
 
-  ros::Subscriber sub = n.subscribe("/head_camera/rgb/image_raw", 5, fetcher);
+  ros::Subscriber sub = n.subscribe("rgb", 5, fetcher); // rgb:=/head_camera/rgb/image_raw
 
 
   ros::spin();
