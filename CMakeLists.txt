@@ -109,7 +109,6 @@ catkin_package(
   INCLUDE_DIRS include
   LIBRARIES 
     matcher_2d
-    demor
     
 # CATKIN_DEPENDS cv_bridge image_transport roscpp sensor_msgs std_msgs message_runtime
 # DEPENDS system_lib
@@ -202,18 +201,10 @@ add_library(matcher_2d src/matcher.cpp)
 add_dependencies(matcher_2d ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(matcher_2d ${catkin_LIBRARIES})
 
-add_library(demor src/demor.cpp)
-add_dependencies(demor ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(
-    demor 
-    matcher_2d 
-    ${catkin_LIBRARIES}
-)
-
-add_executable(demo src/demo.cpp)
+add_executable(demo src/demo_main.cpp)
 add_dependencies(demo ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(demo
-   demor
+   matcher_2d
    ${catkin_LIBRARIES}
 )
 

@@ -28,13 +28,11 @@ void Matcher::set_template(const Mat& templ) {
 	this->templ = templ;
 }
 
-void Matcher::set_camera_model(const sensor_msgs::CameraInfoConstPtr& camera_info) {
+void Matcher::set_cam_model(const sensor_msgs::CameraInfoConstPtr& camera_info) {
 	cam_model.fromCameraInfo(camera_info);
 }
 
-bool Matcher::match_pointclouds(const Mat& rgb, const Mat& depth, vector<PointCloudC::Ptr>& object_clouds) {
-
-	// printf("CameraInfo frame: %s\n", cam_model.tfFrame().c_str());
+bool Matcher::match_clouds(const Mat& rgb, const Mat& depth, vector<PointCloudC::Ptr>& object_clouds) {
 
 	if (rgb.cols != depth.cols || rgb.rows != depth.rows) {
 		return false;
@@ -44,27 +42,28 @@ bool Matcher::match_pointclouds(const Mat& rgb, const Mat& depth, vector<PointCl
 
     if (!match(rgb, lst)) return false; // no match found
 
+    return match_clouds_wframes(rgb, depth, lst, object_clouds);
+
+}
+
+bool Matcher::match_clouds_wframes(const Mat& rgb, const Mat& depth, vector<Frame>& lst, vector<PointCloudC::Ptr>& object_clouds) {
+
+	if (rgb.cols != depth.cols || rgb.rows != depth.rows) {
+		return false;
+	}
+
     object_clouds.clear();
     object_clouds.resize(lst.size());
 
-    for( int i = 0; i < depth.rows; i++) {
-		for ( int j = 0; j < depth.cols; j++) {
-			float dist = depth.at<float>(i, j);
-			if (!isnan(dist)) {
-				// check if within any 2-d bounding box of matched objects:
-				bool within_box = false;
-				int c_index = -1;
+    for (int c = 0; c < lst.size(); c++) {
+    	Frame& f = lst[c];
 
-				for (int k = 0; k < lst.size(); k++) {
-					Frame* f = &lst[k];
-					if (j >= f->p1.x && j <= f->p2.x && i >= f->p1.y && i <= f->p2.y) {
-						within_box = true;
-						c_index = k;
-						break;
-					}
-				}
+		for(int i = f.p1.y + 1; i < f.p2.y; i++) {
+			for (int j = f.p1.x + 1; j < f.p2.x; j++) {
 
-				if (within_box) {
+				float dist = depth.at<float>(i, j);
+
+				if (!isnan(dist)) {
 					cv::Vec3b color = rgb.at<cv::Vec3b>(i, j);
 					cv::Point2d p_2d;
 					p_2d.x = j;
@@ -83,24 +82,30 @@ bool Matcher::match_pointclouds(const Mat& rgb, const Mat& depth, vector<PointCl
 					pcl_point.g = static_cast<uint8_t> (color[1]);
 					pcl_point.r = static_cast<uint8_t> (color[2]);
 
-					if (!object_clouds[c_index]) {
-						object_clouds[c_index] = PointCloudC::Ptr(new PointCloudC());
+					if (!object_clouds[c]) {
+						object_clouds[c] = PointCloudC::Ptr(new PointCloudC());
 					}
-					object_clouds[c_index]->points.push_back(pcl_point);	
+					object_clouds[c]->points.push_back(pcl_point);
 				}
-			}		
-		}
-	} 
+			}   
+		}	
+    }
 
-	for (int i = 0; i < object_clouds.size(); i++) {
-		object_clouds[i]->width = (int) object_clouds[i]->points.size();
-		object_clouds[i]->height = 1;
+	for (vector<PointCloudC::Ptr>::iterator it = object_clouds.begin(); it != object_clouds.end();) {
+		PointCloudC::Ptr cloud = (*it);
+		if (!cloud) { // no valid point in current pointCloud (i.e. cloud hasn't been initialized)
+			it = object_clouds.erase(it);
+		} else {
+			cloud->width = (int) cloud->points.size();
+			cloud->height = 1;
+			it++;
+		}
 	}
 
 	return true;
 }
 
-bool Matcher::match(const Mat& scene, std::vector<Frame>& lst) {
+bool Matcher::match(const Mat& scene, vector<Frame>& lst) {
 	
 	lst.clear();
 
