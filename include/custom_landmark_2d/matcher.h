@@ -8,8 +8,8 @@ namespace custom_landmark_2d {
 
 class Frame {
     public:
-        cv::Point p1; // lower-left point of the frame
-        cv::Point p2; // upper-right point of the frame
+        cv::Point p1; // upper-left point of the frame
+        cv::Point p2; // lower-right point of the frame
 
         float score; // the score of the current frame
 

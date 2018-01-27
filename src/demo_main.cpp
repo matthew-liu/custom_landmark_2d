@@ -69,11 +69,15 @@ void Demor::callback(const sensor_msgs::ImageConstPtr& rgb, const sensor_msgs::I
 
   ROS_INFO("#matched 2D objects: %lu\n", lst.size()); 
   ROS_INFO("-----------");
-  for (std::vector<custom_landmark_2d::Frame>::iterator it = lst.begin(); it != lst.end(); it++) {
+  for (int i = 0; i < lst.size(); i++) {
+    Frame& f = lst[i];
     // annotates matched parts on rgb scene
-    rectangle( rgb_ptr->image, it->p1, it->p2, cv::Scalar(255, 255, 0), 5, 8, 0 );
-
-    ROS_INFO("point intensity: %f, position: [%d, %d]", it->score, it->p1.x, it->p1.y);
+    std::ostringstream stm;
+    stm << i;
+    rectangle( rgb_ptr->image, f.p1, f.p2, cv::Scalar(255, 255, 0), 5, 8, 0 );
+    putText(rgb_ptr->image, stm.str(), cv::Point(f.p1.x - 10, f.p1.y - 10), 
+            cv::FONT_HERSHEY_COMPLEX_SMALL, 1.5, cv::Scalar(255, 255, 0), 2, CV_AA);
+    ROS_INFO("frame score: %f, p1 pos: [%d, %d], index: %d", f.score, f.p1.x, f.p1.y, i);
   }
   ROS_INFO("-----------\n");
 
