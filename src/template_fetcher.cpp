@@ -19,13 +19,10 @@ int main( int argc, char** argv ) {
   ros::init(argc, argv, "template_fetcher");
 
   ros::NodeHandle n;
-
   ros::Subscriber sub = n.subscribe("rgb", 5, fetcher); // rgb:=/head_camera/rgb/image_raw
 
-
   ros::spin();
-
-
+  
   return 0;
 }
 
