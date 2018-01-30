@@ -19,20 +19,19 @@ namespace custom_landmark_2d {
 
 Frame::Frame(const Point p1, const Point p2, const float score) : p1(p1), p2(p2), score(score) {}
 
-Matcher::Matcher() : match_method(CV_TM_CCOEFF_NORMED),
+Matcher::Matcher() : match_method_(CV_TM_CCOEFF_NORMED),
 					 count_times(2),
-					 raw_match_limit(0.75),
 					 match_limit(0.68) {}
 
 void Matcher::set_template(const Mat& templ) {
-	this->templ = templ;
+	templ_ = templ;
 }
 
 void Matcher::set_cam_model(const sensor_msgs::CameraInfoConstPtr& camera_info) {
-	cam_model.fromCameraInfo(camera_info);
+	cam_model_.fromCameraInfo(camera_info);
 }
 
-bool Matcher::match_clouds(const Mat& rgb, const Mat& depth, vector<PointCloudC::Ptr>& object_clouds) {
+bool Matcher::Match(const Mat& rgb, const Mat& depth, vector<PointCloudC::Ptr>* object_clouds) {
 
 	if (rgb.cols != depth.cols || rgb.rows != depth.rows) {
 		return false;
@@ -40,74 +39,77 @@ bool Matcher::match_clouds(const Mat& rgb, const Mat& depth, vector<PointCloudC:
 
 	vector<Frame> lst;
 
-    if (!match(rgb, lst)) return false; // no match found
+    if (!Match(rgb, &lst)) return false; // no match found
 
-    return match_clouds_wframes(rgb, depth, lst, object_clouds);
+    object_clouds->clear();
+	
+	PointCloudC::Ptr object_cloud;
+
+	for (std::vector<Frame>::iterator f = lst.begin(); f != lst.end(); f++) {
+
+		object_cloud = PointCloudC::Ptr(new PointCloudC());
+
+		if (FrameToCloud(rgb, depth, *f, object_cloud)) {
+			object_clouds->push_back(object_cloud);
+		}
+	}
+
+	if (object_clouds->empty()) {
+		return false;
+	}
+	return true;
 
 }
 
-bool Matcher::match_clouds_wframes(const Mat& rgb, const Mat& depth, vector<Frame>& lst, vector<PointCloudC::Ptr>& object_clouds) {
+bool Matcher::FrameToCloud(const Mat& rgb, const Mat& depth, const Frame& f, PointCloudC::Ptr object_cloud) {
 
 	if (rgb.cols != depth.cols || rgb.rows != depth.rows) {
 		return false;
 	}
 
-    object_clouds.clear();
-    object_clouds.resize(lst.size());
+	object_cloud->clear();
 
-    for (int c = 0; c < lst.size(); c++) {
-    	Frame& f = lst[c];
+	for(int i = f.p1.y + 1; i < f.p2.y; i++) {
+		for (int j = f.p1.x + 1; j < f.p2.x; j++) {
 
-		for(int i = f.p1.y + 1; i < f.p2.y; i++) {
-			for (int j = f.p1.x + 1; j < f.p2.x; j++) {
+			float dist = depth.at<float>(i, j);
 
-				float dist = depth.at<float>(i, j);
+			if (!isnan(dist)) {
+				cv::Vec3b color = rgb.at<cv::Vec3b>(i, j);
+				cv::Point2d p_2d;
+				p_2d.x = j;
+				p_2d.y = i;
 
-				if (!isnan(dist)) {
-					cv::Vec3b color = rgb.at<cv::Vec3b>(i, j);
-					cv::Point2d p_2d;
-					p_2d.x = j;
-					p_2d.y = i;
+				cv::Point3d p_3d = cam_model_.projectPixelTo3dRay(p_2d);
 
-					cv::Point3d p_3d = cam_model.projectPixelTo3dRay(p_2d);
+				PointC pcl_point;
 
-					PointC pcl_point;
+				pcl_point.x = p_3d.x * dist;
+				pcl_point.y = p_3d.y * dist;
+				pcl_point.z = p_3d.z * dist;
 
-					pcl_point.x = p_3d.x * dist;
-					pcl_point.y = p_3d.y * dist;
-					pcl_point.z = p_3d.z * dist;
+				// bgr
+				pcl_point.b = static_cast<uint8_t> (color[0]);
+				pcl_point.g = static_cast<uint8_t> (color[1]);
+				pcl_point.r = static_cast<uint8_t> (color[2]);
 
-					// bgr
-					pcl_point.b = static_cast<uint8_t> (color[0]);
-					pcl_point.g = static_cast<uint8_t> (color[1]);
-					pcl_point.r = static_cast<uint8_t> (color[2]);
-
-					if (!object_clouds[c]) {
-						object_clouds[c] = PointCloudC::Ptr(new PointCloudC());
-					}
-					object_clouds[c]->points.push_back(pcl_point);
-				}
-			}   
-		}	
-    }
-
-	for (vector<PointCloudC::Ptr>::iterator it = object_clouds.begin(); it != object_clouds.end();) {
-		PointCloudC::Ptr cloud = (*it);
-		if (!cloud) { // no valid point in current pointCloud (i.e. cloud hasn't been initialized)
-			it = object_clouds.erase(it);
-		} else {
-			cloud->width = (int) cloud->points.size();
-			cloud->height = 1;
-			it++;
-		}
+				object_cloud->points.push_back(pcl_point);
+			}
+		}   
 	}
 
+	object_cloud->width = (int) object_cloud->points.size();
+	object_cloud->height = 1;
+
+	if (object_cloud->empty()) {
+		return false;
+	}
 	return true;
 }
 
-bool Matcher::match(const Mat& scene, vector<Frame>& lst) {
+bool Matcher::Match(const Mat& scene, vector<Frame>* lst) {
 	
-	lst.clear();
+	lst->clear();
 
 	int counter = count_times;
 	Mat scaled_templ;
@@ -116,7 +118,7 @@ bool Matcher::match(const Mat& scene, vector<Frame>& lst) {
 	double factor = 1.0 + 0.1 * count_times;
 	while (counter > 0) {
 
-		resize(templ, scaled_templ, Size(), factor, factor, INTER_LINEAR);
+		resize(templ_, scaled_templ, Size(), factor, factor, INTER_LINEAR);
 		exact_match(scene, scaled_templ, lst);
 
 		factor -= 0.1;
@@ -124,49 +126,42 @@ bool Matcher::match(const Mat& scene, vector<Frame>& lst) {
 	}
 
 	// original scale
-	exact_match(scene, templ, lst);
+	exact_match(scene, templ_, lst);
 
 	// scale down
 	counter = count_times;
 	factor  = 0.9;
 	while (counter > 0) {
 
-		resize(templ, scaled_templ, Size(), factor, factor, INTER_AREA);
+		resize(templ_, scaled_templ, Size(), factor, factor, INTER_AREA);
 		exact_match(scene, scaled_templ, lst);
 
 		factor -= 0.1;
 		counter--;
 	}
 
-	if (lst.empty()) {
+	if (lst->empty()) {
 		return false;
 	}
 
 	return true;
 }
 
-// performs a single match on the given scene & templ, returns the max match_score	
-double Matcher::exact_match(const Mat& scene, const Mat& templ, vector<Frame>& matching) {
+// performs a single match on the given scene & scaled_templ
+void Matcher::exact_match(const Mat& scene, const Mat& scaled_templ, vector<Frame>* lst) {
 
-	x_dist = (int) templ.cols;
-	y_dist = (int) templ.rows;
+	x_dist_ = (int) scaled_templ.cols;
+	y_dist_ = (int) scaled_templ.rows;
 
 	Mat result; // the result matrix
 
-	int result_cols = scene.cols - templ.cols + 1;
-	int result_rows = scene.rows - templ.rows + 1;
+	int result_cols = scene.cols - scaled_templ.cols + 1;
+	int result_rows = scene.rows - scaled_templ.rows + 1;
 
 	result.create(result_rows, result_cols, CV_32FC1);
 
 	// Do the Matching
-	matchTemplate(scene, templ, result, match_method);
-
-	double minVal; double maxVal; Point minLoc; Point maxLoc;
-	minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
-
-	if (maxVal < raw_match_limit) {
-		return maxVal;
-	}
+	matchTemplate(scene, scaled_templ, result, match_method_);
 
 	// scan through result to find all matching points
 	int i,j;
@@ -176,41 +171,39 @@ double Matcher::exact_match(const Mat& scene, const Mat& templ, vector<Frame>& m
 		for ( j = 0; j < result.cols; j++) {
 			if ( p[j] > match_limit) { // acceptable matching point
 				Frame* f_ptr;
-				if (around_frame(j, i, matching, &f_ptr)) {
+				if (around_frame(j, i, lst, &f_ptr)) {
 					if (p[j] > f_ptr->score) { // current point has better score
 
 						f_ptr->p1 = Point(j, i);
-						f_ptr->p2 = Point(j + x_dist, i + y_dist);
+						f_ptr->p2 = Point(j + x_dist_, i + y_dist_);
             			f_ptr->score = p[j];
           			}
         		} else {
-          			matching.push_back(Frame(Point(j, i), Point(j + x_dist, i + y_dist), p[j]));
+          			lst->push_back(Frame(Point(j, i), Point(j + x_dist_, i + y_dist_), p[j]));
         		}
       		}
   		}
 	}
-
-	return maxVal;
 }
 
 // checks whether point(x, y) is around any frame in the vector, returns such frame if found
-bool Matcher::around_frame(int x, int y, vector<Frame>& matching, Frame** f_ptr_ptr) {
-	if (matching.empty()) {
+bool Matcher::around_frame(int x, int y, vector<Frame>* lst, Frame** f_ptr_ptr) {
+	if (lst->empty()) {
 		return false;
 	}
 
-	for (vector<Frame>::iterator it = matching.begin(); it != matching.end(); it++) {
-		if (around_point(x, y, it->p1)) {
- 			*f_ptr_ptr = &(*it);
+	for (vector<Frame>::iterator f = lst->begin(); f != lst->end(); f++) {
+		if (around_point(x, y, f->p1)) {
+ 			*f_ptr_ptr = &(*f);
   			return true;
 		}
 	}
 	return false;
 }
 
-// checks whether point(x, y) is around point p using the current x_dist & y_dist
+// checks whether point(x, y) is around point p using the current x_dist_ & y_dist_
 bool Matcher::around_point(int x, int y, Point& p) {
-	if (abs(p.x - x) < x_dist && abs(p.y - y) < y_dist) {
+	if (abs(p.x - x) < x_dist_ && abs(p.y - y) < y_dist_) {
     	return true;
 	}
   	return false;

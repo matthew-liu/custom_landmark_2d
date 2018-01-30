@@ -46,35 +46,52 @@ void Demor::callback(const sensor_msgs::ImageConstPtr& rgb, const sensor_msgs::I
     ros::shutdown(); 
   }
 
-  // run matching on the image
-  std::vector<custom_landmark_2d::Frame> lst;
+  // run & time Match()
+  std::vector<Frame> lst;
 
   float start_tick = clock();
-  bool result = matcher.match(rgb_ptr->image, lst);
+  bool result = matcher.Match(rgb_ptr->image, &lst);
   float end_tick = clock();
-  ROS_INFO("match() runtime: %f", (end_tick - start_tick) / CLOCKS_PER_SEC); 
+
+  ROS_INFO("Match() runtime: %f", (end_tick - start_tick) / CLOCKS_PER_SEC); 
 
   if (!result) {
     ROS_INFO("no matched objects in 2d rgb scene...\n");
     return; 
   }
 
-  // the result pointCloud vector of matched objects
-  std::vector<PointCloudC::Ptr> object_clouds;
-
+  // run & time FrameToCloud()
   start_tick = clock();
-  result = matcher.match_clouds_wframes(rgb_ptr->image, depth_ptr->image, lst, object_clouds);
-  end_tick = clock();
-  ROS_INFO("match_clouds_wframes() runtime: %f\n", (end_tick - start_tick) / CLOCKS_PER_SEC); 
 
+  std::vector<PointCloudC::Ptr> object_clouds;
+  PointCloudC::Ptr object_cloud;
+
+  for (std::vector<Frame>::iterator it = lst.begin(); it != lst.end(); it++) {
+    object_cloud = PointCloudC::Ptr(new PointCloudC());
+
+    if (matcher.FrameToCloud(rgb_ptr->image, depth_ptr->image, *it, object_cloud)) {
+      object_clouds.push_back(object_cloud);
+    }
+  }
+  // alternatively, you can call Match to directly return a vector of object_clouds as well:
+  // matcher.Match(rgb_ptr->image, depth_ptr->image, &object_clouds);
+  end_tick = clock();
+
+  ROS_INFO("%lu calls to FrameToCloud() total runtime: %f\n", lst.size(),  (end_tick - start_tick) / CLOCKS_PER_SEC); 
+
+  if (object_clouds.empty()) {
+    ROS_INFO("no valid matched object coordinate...\n");
+    return; 
+  }
+
+  // annotates rgb_ptr->image & publish it
   ROS_INFO("#matched 2D objects: %lu\n", lst.size()); 
   ROS_INFO("-----------");
   for (int i = 0; i < lst.size(); i++) {
     Frame& f = lst[i];
-    // annotates matched parts on rgb scene
     std::ostringstream stm;
     stm << i;
-    rectangle( rgb_ptr->image, f.p1, f.p2, cv::Scalar(255, 255, 0), 5, 8, 0 );
+    rectangle( rgb_ptr->image, f.p1, f.p2, cv::Scalar(255, 255, 0), 4, 8, 0 );
     putText(rgb_ptr->image, stm.str(), cv::Point(f.p1.x - 10, f.p1.y - 10), 
             cv::FONT_HERSHEY_COMPLEX_SMALL, 1.5, cv::Scalar(255, 255, 0), 2, CV_AA);
     ROS_INFO("frame score: %f, p1 pos: [%d, %d], index: %d", f.score, f.p1.x, f.p1.y, i);
@@ -83,15 +100,8 @@ void Demor::callback(const sensor_msgs::ImageConstPtr& rgb, const sensor_msgs::I
 
   matched_scene_pub.publish(rgb_ptr->toImageMsg());
 
-  if (!result) {
-    ROS_INFO("no valid matched object coordinate...\n");
-    return; 
-  }
-
-  // the single pointCloud for better display 
+  // concatenate the vector of pointClouds into a single one & publish it
   PointCloudC::Ptr pcl_cloud(new PointCloudC());
-
-  // concatenate the vector of pointClouds
   for (std::vector<PointCloudC::Ptr>::iterator it = object_clouds.begin(); it != object_clouds.end(); it++) {
     *pcl_cloud += **it;
   }

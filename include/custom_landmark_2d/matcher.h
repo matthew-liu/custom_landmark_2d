@@ -21,8 +21,7 @@ class Matcher {
 
     public:
         int count_times; 		   // #times of scaling in each direction
-        float raw_match_limit; // the threshold for BEST acceptable matching points
-        float match_limit;     // the threshold for ALL acceptable matching points
+        float match_limit;     // the threshold for acceptable matching points
 
         Matcher();
 
@@ -31,27 +30,31 @@ class Matcher {
 
         // takes in an output parameter that contains all frames of matched objects in the scene;
         // returns true if there is at least one matched frame, and false otherwise
-        bool match(const cv::Mat& scene, std::vector<Frame>& lst);
+        bool Match(const cv::Mat& scene, std::vector<Frame>* lst);
+
         // outputs each matched object as a single point cloud, in a vector of point cloud pointers;
         // depth MUST be the registered depth image of rgb
-        bool match_clouds(const cv::Mat& rgb, const cv::Mat& depth, 
-                          std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>& object_clouds);
-        // given a pre-computed vector of matched frames in the input rgb & depth scene,
-        // outputs each matched object as a single point cloud, in a vector of point cloud pointers
-        bool match_clouds_wframes(const cv::Mat& rgb, const cv::Mat& depth, std::vector<Frame>& lst,
-                                  std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>& object_clouds);
+        // returns true if there is at least one matched object cloud, and false otherwise
+        bool Match(const cv::Mat& rgb, const cv::Mat& depth, 
+                   std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>* object_clouds);
+
+        // given a single pre-computed matched frame in the input rgb & depth scene,
+        // output the single matched object as a point cloud
+        // returns true if object_cloud is not empty
+        bool FrameToCloud(const cv::Mat& rgb, const cv::Mat& depth, const Frame& f,
+                          pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_cloud);
 
     private:
-        int match_method;
-        int x_dist, y_dist;
-        cv::Mat templ;
-        image_geometry::PinholeCameraModel cam_model;
+        int match_method_;
+        int x_dist_, y_dist_;
+        cv::Mat templ_;
+        image_geometry::PinholeCameraModel cam_model_;
 
-        // performs a single match on the given scene & templ, returns the max match_score	
-        double exact_match(const cv::Mat& scene, const cv::Mat& templ, std::vector<Frame>& matching);
+        // performs a single match on the given scene & scaled_templ
+        void exact_match(const cv::Mat& scene, const cv::Mat& scaled_templ, std::vector<Frame>* lst);
         // checks whether point(x, y) is around any frame in the vector, returns such frame if found
-        bool around_frame(int x, int y, std::vector<Frame>& matching, Frame** p_ptr_ptr);
-        // checks whether point(x, y) is around point p using the current x_dist & y_dist
+        bool around_frame(int x, int y, std::vector<Frame>* lst, Frame** p_ptr_ptr);
+        // checks whether point(x, y) is around point p using the current x_dist_ & y_dist_
         bool around_point(int x, int y, cv::Point& p);
 };
 
