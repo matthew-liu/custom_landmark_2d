@@ -1,60 +1,35 @@
 <?xml version="1.0"?>
 <package>
   <name>custom_landmark_2d</name>
-  <version>0.1.0</version>
-  <description>Custom Landmark 2D</description>
+  <version>0.3.3</version>
+  <description>
+    Simple object recognition library for 2D images, with the additional functionality of projecting to 3D pointcloud.
+    Uses a matching alogrithm underneath.
+  </description>
 
-  <!-- One maintainer tag required, multiple allowed, one person per tag --> 
-  <!-- Example:  -->
-  <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
-  <maintainer email="liux44@cs.washington.edu">liux44</maintainer>
+  <maintainer email="liux44@cs.washington.edu">Matthew Liu</maintainer>
+  <author email="liux44@cs.washington.edu">Matthew Liu</author>
 
+  <license>BSD</license>
 
-  <!-- One license tag required, multiple allowed, one license per tag -->
-  <!-- Commonly used license strings: -->
-  <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
-  <license>TODO</license>
+  <url type="website">http://wiki.ros.org/custom_landmark_2d</url>
 
-
-  <!-- Url tags are optional, but mutiple are allowed, one per tag -->
-  <!-- Optional attribute type can be: website, bugtracker, or repository -->
-  <!-- Example: -->
-  <!-- <url type="website">http://wiki.ros.org/custom_landmark_2d</url> -->
-
-
-  <!-- Author tags are optional, mutiple are allowed, one per tag -->
-  <!-- Authors do not have to be maintianers, but could be -->
-  <!-- Example: -->
-  <!-- <author email="jane.doe@example.com">Jane Doe</author> -->
-
-
-  <!-- The *_depend tags are used to specify dependencies -->
-  <!-- Dependencies can be catkin packages or system dependencies -->
-  <!-- Examples: -->
-  <!-- Use build_depend for packages you need at compile time: -->
-  <!-- Use buildtool_depend for build tool packages: -->
-  <!--   <buildtool_depend>catkin</buildtool_depend> -->
-  <!-- Use run_depend for packages you need at runtime: -->
-  <run_depend>message_runtime</run_depend>
-  <!-- Use test_depend for packages you need only for testing: -->
-  <!--   <test_depend>gtest</test_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>cv_bridge</build_depend>
+  <build_depend>pcl_ros</build_depend>
+  <build_depend>image_geometry</build_depend>
   <build_depend>image_transport</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>sensor_msgs</build_depend>
-  <build_depend>std_msgs</build_depend>
 
   <run_depend>cv_bridge</run_depend>
+  <run_depend>pcl_ros</run_depend>
+  <run_depend>image_geometry</run_depend>
   <run_depend>image_transport</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>sensor_msgs</run_depend>
-  <run_depend>std_msgs</run_depend>
 
-
-  <!-- The export tag contains other, unspecified, tags -->
   <export>
-    <!-- Other tools can request additional information be placed here -->
-
+    <rosdoc config="rosdoc.yaml" />
   </export>
 </package>

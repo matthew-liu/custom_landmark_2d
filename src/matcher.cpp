@@ -8,6 +8,7 @@
 #include <image_geometry/pinhole_camera_model.h>
 
 #include <stdlib.h>
+#include <assert.h> 
 
 using namespace std;
 using namespace cv;
@@ -33,9 +34,7 @@ void Matcher::set_cam_model(const sensor_msgs::CameraInfoConstPtr& camera_info) 
 
 bool Matcher::Match(const Mat& rgb, const Mat& depth, vector<PointCloudC::Ptr>* object_clouds) {
 
-	if (rgb.cols != depth.cols || rgb.rows != depth.rows) {
-		return false;
-	}
+	check_rgbd(rgb, depth);
 
 	vector<Frame> lst;
 
@@ -58,14 +57,11 @@ bool Matcher::Match(const Mat& rgb, const Mat& depth, vector<PointCloudC::Ptr>* 
 		return false;
 	}
 	return true;
-
 }
 
 bool Matcher::FrameToCloud(const Mat& rgb, const Mat& depth, const Frame& f, PointCloudC::Ptr object_cloud) {
 
-	if (rgb.cols != depth.cols || rgb.rows != depth.rows) {
-		return false;
-	}
+	check_rgbd(rgb, depth);
 
 	object_cloud->clear();
 
@@ -105,6 +101,12 @@ bool Matcher::FrameToCloud(const Mat& rgb, const Mat& depth, const Frame& f, Poi
 		return false;
 	}
 	return true;
+}
+
+void Matcher::check_rgbd(const Mat& rgb, const Mat& depth) {
+	// currently only support depth image encoding of CV_32FC1
+	assert(depth.type() == CV_32FC1);
+	assert(rgb.cols == depth.cols && rgb.rows == depth.rows);
 }
 
 bool Matcher::Match(const Mat& scene, vector<Frame>* lst) {

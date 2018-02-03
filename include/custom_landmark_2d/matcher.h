@@ -35,12 +35,16 @@ class Matcher {
         // outputs each matched object as a single point cloud, in a vector of point cloud pointers;
         // depth MUST be the registered depth image of rgb
         // returns true if there is at least one matched object cloud, and false otherwise
+        //
+        // currently only support depth image type of CV_32FC1
         bool Match(const cv::Mat& rgb, const cv::Mat& depth, 
                    std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>* object_clouds);
 
         // given a single pre-computed matched frame in the input rgb & depth scene,
         // output the single matched object as a point cloud
         // returns true if object_cloud is not empty
+        //
+        // currently only support depth image type of CV_32FC1
         bool FrameToCloud(const cv::Mat& rgb, const cv::Mat& depth, const Frame& f,
                           pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_cloud);
 
@@ -56,6 +60,8 @@ class Matcher {
         bool around_frame(int x, int y, std::vector<Frame>* lst, Frame** p_ptr_ptr);
         // checks whether point(x, y) is around point p using the current x_dist_ & y_dist_
         bool around_point(int x, int y, cv::Point& p);
+        // check that rgb & depth have the required properties like dimensions & encodings
+        void check_rgbd(const cv::Mat& rgb, const cv::Mat& depth);
 };
 
 }  // namespace custom_landmark_2d
