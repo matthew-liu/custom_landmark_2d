@@ -3,8 +3,8 @@
   <name>custom_landmark_2d</name>
   <version>0.3.3</version>
   <description>
-    Simple object recognition library for 2D images, with the additional functionality of projecting to 3D pointcloud.
-    Uses a matching alogrithm underneath.
+    Simple object recognition library for 2D images, with the additional functionality of projecting matched 2D objects to 3D pointclouds.
+    A matching alogrithm is used underneath.
   </description>
 
   <maintainer email="liux44@cs.washington.edu">Matthew Liu</maintainer>
