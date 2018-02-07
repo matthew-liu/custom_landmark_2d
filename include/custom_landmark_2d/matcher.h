@@ -6,45 +6,83 @@
 
 namespace custom_landmark_2d {
 
+/// \brief Represents a single instance of matched object in the 2D rgb scene.
 class Frame {
     public:
-        cv::Point p1; // upper-left point of the frame
-        cv::Point p2; // lower-right point of the frame
-
-        float score; // the score of the current frame
+        /// \brief The upper-left point of this frame (x_min, y_min)
+        cv::Point p1;
+        /// \brief The lower-right point of this frame (x_max, y_max)
+        cv::Point p2;
+        /// \brief The score of this frame
+        float score; 
 
         Frame();
         Frame(const cv::Point p1, const cv::Point p2, const float score);
 };
 
+/// \brief The main API for 2D object recognition and projection to 3D pointclouds.
 class Matcher {
 
     public:
-        int count_times; 		   // #times of scaling in each direction
-        float match_limit;     // the threshold for acceptable matching points
+        /// \brief #times of scaling in each direction
+        ///
+        /// The default value is 2, which means a total scaling range of (0.8 ~ 1.2) * original_scale
+        int count_times;
+        /// \brief The threshold for ALL acceptable matching points
+        ///
+        /// The default value is 0.68. This value is likely needed to be adjusted for different objects.
+        float match_limit;
 
+        /// \brief The default constructors
+        ///
+        /// Sets all public variables to their default values.
         Matcher();
 
+        /// \brief Sets the template image (the object to be recognized)
         void set_template(const cv::Mat& templ);
+
+        /// \brief Sets the camera model
+        ///
+        /// This is only needed for projection to 3D pointclouds.
         void set_cam_model(const sensor_msgs::CameraInfoConstPtr& camera_info);
 
-        // takes in an output parameter that contains all frames of matched objects in the scene;
-        // returns true if there is at least one matched frame, and false otherwise
+        /// \brief Performs matching and outputs each matched object as a Frame.
+        /// 
+        /// Returns true if there is at least one matched object, and false otherwise.
+        ///
+        /// \param[in] scene The 2D rgb scene within which to find matched objects
+        ///
+        /// \param[out] lst The vector that contains all frames of matched objects in the scene
         bool Match(const cv::Mat& scene, std::vector<Frame>* lst);
 
-        // outputs each matched object as a single point cloud, in a vector of point cloud pointers;
-        // depth MUST be the registered depth image of rgb
-        // returns true if there is at least one matched object cloud, and false otherwise
-        //
-        // currently only support depth image type of CV_32FC1
+        /// \brief Performs matching and outputs each matched object as a pcl pointcloud.
+        ///        Currently only supports depth image type of <b>CV_32FC1</b>.
+        /// 
+        /// Returns true if there is at least one matched object, and false otherwise.
+        /// This method asserts that the rgb and depth image have the same dimension and
+        /// the depth image is of type CV_32FC1.
+        ///
+        /// \param[in] rgb The 2D rgb scene within which to find matched objects
+        /// \param[in] depth The 2D <b>registered</b> depth image corresponds to the rgb scene 
+        ///                  (must have the same dimension as the rgb image)
+        ///
+        /// \param[out] lst The vector of matched objects in the rgb scene, each as a pcl pointcloud
         bool Match(const cv::Mat& rgb, const cv::Mat& depth, 
                    std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr>* object_clouds);
 
-        // given a single pre-computed matched frame in the input rgb & depth scene,
-        // output the single matched object as a point cloud
-        // returns true if object_cloud is not empty
-        //
-        // currently only support depth image type of CV_32FC1
+        /// \brief Given a single pre-computed matched Frame, projects it into a pcl pointcloud.
+        ///        Currently only supports depth image type of <b>CV_32FC1</b>.
+        /// 
+        /// Returns true if object_cloud is not empty.
+        /// This method asserts that the rgb and depth image have the same dimension and
+        /// the depth image is of type CV_32FC1.
+        ///
+        /// \param[in] rgb The 2D rgb scene within which we found the input matched Frame f
+        /// \param[in] depth The 2D <b>registered</b> depth image corresponds to the rgb scene 
+        ///                  (must have the same dimension as the rgb image)
+        /// \param[in] f A single pre-computed matched Frame in the input rgb scene
+        ///
+        /// \param[out] object_cloud The pcl pointcloud of the matched object represented by the input Frame f
         bool FrameToCloud(const cv::Mat& rgb, const cv::Mat& depth, const Frame& f,
                           pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_cloud);
 

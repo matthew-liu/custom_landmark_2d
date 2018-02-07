@@ -20,6 +20,7 @@ using namespace message_filters;
 
 namespace custom_landmark_2d {
 
+/// \brief A simple hepler class for demo.
 class Demor {
 	public:
 		Matcher matcher;
