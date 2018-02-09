@@ -38,7 +38,7 @@ find_package( PCL REQUIRED )
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES 
-    matcher_2d
+    custom_landmark_2d_matcher
   CATKIN_DEPENDS
     cv_bridge
     pcl_ros
