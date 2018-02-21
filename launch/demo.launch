@@ -1,0 +1,8 @@
+<launch>
+  <arg name="template" />
+  <node pkg="custom_landmark_2d" type="demo" name="custom_landmark_2d_demo" args="$(arg template)">
+    <remap from="rgb" to="/head_mount_kinect/rgb/image_rect_color" />
+    <remap from="depth" to="/head_mount_kinect/depth_registered/image" />
+    <remap from="/head_camera/rgb/camera_info" to="/head_mount_kinect/depth_registered/camera_info" />
+  </node>
+</launch>
