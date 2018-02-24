@@ -21,6 +21,45 @@ class Frame {
 };
 
 /// \brief The main API for 2D object recognition and projection to 3D pointclouds.
+///
+/// It finds all the matched objects (each represented as a 'frame' by custom_landmark_2d::Frame) in the given rgb image.
+/// Given an additional registered depth image, it can also project the matched objects into 3D pointclouds.
+///
+/// \par API Usage Example:
+///
+/// \code
+///   custom_landmark_2d::Matcher matcher;
+///
+///   matcher.set_template(templ);
+///   matcher.set_cam_model(camera_info);
+///
+///   // this is the threshold for ALL acceptable matching frames,
+///   // with value ranging from 0.0 to 1.0(perfect match). The default value is 0.68. 
+///   // this value is likely needed to be adjusted for optimal results on different objects.
+///   matcher.match_limit = 0.6;
+///
+///
+///   // we want to find out how many matched objects are in the rgb image:
+///   std::vector<custom_landmark_2d::Frame> lst;
+///   if (matcher.Match(rgb_image, &lst)) {
+///     // we get >=1 matched frames/objects
+///   }
+///
+///
+///   // we now want the pointcloud containing only the second matched object:
+///   custom_landmark_2d::Frame object_frame = lst[1];
+///   pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_cloud;
+///   matcher.FrameToCloud(rgb_image, depth_image, object_frame, object_cloud);
+///
+///
+///   // we don't care about 2D points;
+///   // just directly give us all matched objects, each in a pointcloud:
+///   std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> object_clouds;
+///   if (matcher.Match(rgb_image, depth_image, &object_cloud)) {
+///     // we get >=1 matched objects
+///   }
+/// \endcode
+///
 class Matcher {
 
     public:
@@ -28,9 +67,9 @@ class Matcher {
         ///
         /// The default value is 2, which means a total scaling range of (0.8 ~ 1.2) * original_scale
         int count_times;
-        /// \brief The threshold for ALL acceptable matching points
+        /// \brief The threshold for ALL acceptable matching frames, with value ranging from 0.0 to 1.0(perfect match).
         ///
-        /// The default value is 0.68. This value is likely needed to be adjusted for different objects.
+        /// The default value is 0.68. This value is likely needed to be adjusted for optimal results on different objects.
         float match_limit;
 
         /// \brief The default constructors

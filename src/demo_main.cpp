@@ -47,6 +47,8 @@ void Demor::callback(const sensor_msgs::ImageConstPtr& rgb, const sensor_msgs::I
     ros::shutdown(); 
   }
 
+  ros::param::param("match_limit", matcher.match_limit, (float) 0.68);
+
   // run & time Match()
   std::vector<Frame> lst;
 
@@ -118,9 +120,22 @@ void Demor::callback(const sensor_msgs::ImageConstPtr& rgb, const sensor_msgs::I
 
 }
 
-// run this class like this:
-// rosrun custom_landmark_2d demo template.jpg rgb:=/head_camera/rgb/image_raw depth:=/head_camera/depth_registered/image_raw
+void print_usage() {
+  std::cout << "\n"
+            << "Listens to two sensor_msgs::Image topics and output an annotated version"
+            << "of the rgb scene to /image_out as well as a concatenated pointcloud" 
+            << "containing all matched objects to /generated_cloud.\n" 
+            << "\n"
+            << "Usage: rosrun custom_landmark_2d demo template.jpg rgb:=/topic1 depth:=/topic2 cam_info:=/topic3" 
+            << std::endl;
+}
+
 int main(int argc, char** argv) {
+
+  if (argc != 5) {
+    print_usage();
+    return 1;
+  }
 
   ros::init(argc, argv, "demo");
   ros::NodeHandle nh;
@@ -136,7 +151,7 @@ int main(int argc, char** argv) {
   custom_landmark_2d::Demor demor;
 
   // fetch CameraInfo
-  demor.camera_info = ros::topic::waitForMessage<sensor_msgs::CameraInfo>("/head_camera/rgb/camera_info");
+  demor.camera_info = ros::topic::waitForMessage<sensor_msgs::CameraInfo>("cam_info");
 
   ROS_INFO("received camear_info...");  
 
@@ -148,8 +163,8 @@ int main(int argc, char** argv) {
   demor.cloud_pub = nh.advertise<sensor_msgs::PointCloud2>("generated_cloud", 1, true);
   demor.matched_scene_pub = nh.advertise<sensor_msgs::Image>("image_out", 100);
 
-  message_filters::Subscriber<Image> rgb_sub(nh, "rgb", 1); // rgb:=/head_camera/rgb/image_raw
-  message_filters::Subscriber<Image> depth_sub(nh, "depth", 1); // depth:=/head_camera/depth_registered/image_raw
+  message_filters::Subscriber<Image> rgb_sub(nh, "rgb", 1);
+  message_filters::Subscriber<Image> depth_sub(nh, "depth", 1);
 
   typedef sync_policies::ApproximateTime<Image, Image> SyncPolicy;
   // ApproximateTime takes a queue size as its constructor argument, hence SyncPolicy(10)

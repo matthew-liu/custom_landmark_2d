@@ -17,6 +17,12 @@ custom_landmark_2d::Matcher matcher;
 matcher.set_template(templ);
 matcher.set_cam_model(camera_info);
 
+// this is the threshold for ALL acceptable matching frames,
+// with value ranging from 0.0 to 1.0(perfect match). The default value is 0.68. 
+// this value is likely needed to be adjusted for optimal results on different objects.
+matcher.match_limit = 0.6;
+
+
 // we want to find out how many matched objects are in the rgb image:
 std::vector<custom_landmark_2d::Frame> lst;
 if (matcher.Match(rgb_image, &lst)) {
@@ -27,13 +33,12 @@ if (matcher.Match(rgb_image, &lst)) {
 // we now want the pointcloud containing only the second matched object:
 custom_landmark_2d::Frame object_frame = lst[1];
 pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_cloud;
-
 matcher.FrameToCloud(rgb_image, depth_image, object_frame, object_cloud);
 
 
-// we don't care about 2D points, just directly give us all matched objects, each in a pointcloud:
+// we don't care about 2D points;
+// just directly give us all matched objects, each in a pointcloud:
 std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> object_clouds;
-
 if (matcher.Match(rgb_image, depth_image, &object_cloud)) {
   // we get >=1 matched objects
 }
@@ -43,14 +48,19 @@ if (matcher.Match(rgb_image, depth_image, &object_cloud)) {
 \par Helper Classes:
 
 The demo_main.cpp is provided in the package to help examine and visualize the results.
-It listens to two ROS image topics and output an annotated version of the rgb scene to /image_out as well as a concatenated pointcloud containing all matched objects to /generated_cloud.
+It listens to two sensor_msgs::Image topics and output an annotated version of the rgb scene to /image_out as well as a concatenated pointcloud containing all matched objects to /generated_cloud.
 Many extra useful info is printed through ROS_INFO.
 You can run the demo in this way:
 \verbatim
-$ rosrun custom_landmark_2d demo template.jpg rgb:=/topic1 depth:=/topic2
+$ rosrun custom_landmark_2d demo template.jpg rgb:=/topic1 depth:=/topic2 cam_info:=/topic3
 \endverbatim
 
-The template_fetcher.cpp is provided in the package to help saving a template image to current folder from a ROS topic. You most likely need to crop it manually afterward.
+Note that matcher.match_limit is already set as a rosparam in demo_main.cpp, and you can easily tweak its value by typing in terminal:
+\verbatim
+$ rosparam set match_limit [new_value]
+\endverbatim
+
+The template_fetcher.cpp is provided in the package to help saving a template image to current folder from a sensor_msgs::Image topic. You most likely need to crop it manually afterward.
 You can run the template_fetcher in this way:
 \verbatim
 $ rosrun custom_landmark_2d template_fetcher rgb:=/topic1
