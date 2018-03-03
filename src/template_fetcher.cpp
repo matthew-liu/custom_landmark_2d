@@ -13,9 +13,9 @@ void fetcher(const sensor_msgs::Image::ConstPtr& msg);
 void print_usage() {
   std::cout << "\n"
             << "Saves a snapshot of image from the input sensor_msgs::Image topic "
-            << "to the current directory.\n" 
+            << "to the current directory.\n"
             << "\n"
-            << "Usage: rosrun custom_landmark_2d template_fetcher rgb:=/topic1" 
+            << "Usage: rosrun custom_landmark_2d template_fetcher rgb:=/topic1"
             << std::endl;
 }
 
@@ -23,7 +23,7 @@ void print_usage() {
 // rosrun custom_landmark_2d template_fetcher rgb:=/head_mount_kinect/rgb/image_raw
 int main( int argc, char** argv ) {
 
-  if (argc != 2) {
+  if (argc < 2) {
     print_usage();
     return 1;
   }
@@ -34,7 +34,7 @@ int main( int argc, char** argv ) {
   ros::Subscriber sub = n.subscribe("rgb", 5, fetcher);
 
   ros::spin();
-  
+
   return 0;
 }
 
@@ -44,7 +44,7 @@ void fetcher(const sensor_msgs::Image::ConstPtr& msg) {
 
     try {
       cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8); // , sensor_msgs::image_encodings::RGB8
-    } 
+    }
     catch (cv_bridge::Exception& e) {
       ROS_ERROR("cv_bridge exception: %s", e.what());
       exit(1);
@@ -52,7 +52,7 @@ void fetcher(const sensor_msgs::Image::ConstPtr& msg) {
 
     imwrite("template.jpg", cv_ptr->image);
     ROS_INFO("image captured successfully, shutting down...");
-    
+
     ros::shutdown();
   }
 }

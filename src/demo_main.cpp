@@ -41,10 +41,10 @@ void Demor::callback(const sensor_msgs::ImageConstPtr& rgb, const sensor_msgs::I
   try {
     rgb_ptr = cv_bridge::toCvCopy(rgb, sensor_msgs::image_encodings::BGR8);
     depth_ptr = cv_bridge::toCvCopy(depth); // 32FC1
-  } 
+  }
   catch (cv_bridge::Exception& e) {
     ROS_ERROR("cv_bridge exception: %s", e.what());
-    ros::shutdown(); 
+    ros::shutdown();
   }
 
   ros::param::param("match_limit", matcher.match_limit, (float) 0.68);
@@ -56,11 +56,11 @@ void Demor::callback(const sensor_msgs::ImageConstPtr& rgb, const sensor_msgs::I
   bool result = matcher.Match(rgb_ptr->image, &lst);
   float end_tick = clock();
 
-  ROS_INFO("Match() runtime: %f", (end_tick - start_tick) / CLOCKS_PER_SEC); 
+  ROS_INFO("Match() runtime: %f", (end_tick - start_tick) / CLOCKS_PER_SEC);
 
   if (!result) {
     ROS_INFO("no matched objects in 2d rgb scene...\n");
-    return; 
+    return;
   }
 
   // run & time FrameToCloud()
@@ -80,22 +80,22 @@ void Demor::callback(const sensor_msgs::ImageConstPtr& rgb, const sensor_msgs::I
   // matcher.Match(rgb_ptr->image, depth_ptr->image, &object_clouds);
   end_tick = clock();
 
-  ROS_INFO("%lu calls to FrameToCloud() total runtime: %f\n", lst.size(),  (end_tick - start_tick) / CLOCKS_PER_SEC); 
+  ROS_INFO("%lu calls to FrameToCloud() total runtime: %f\n", lst.size(),  (end_tick - start_tick) / CLOCKS_PER_SEC);
 
   if (object_clouds.empty()) {
     ROS_INFO("no valid matched object coordinate...\n");
-    return; 
+    return;
   }
 
   // annotates rgb_ptr->image & publish it
-  ROS_INFO("#matched 2D objects: %lu\n", lst.size()); 
+  ROS_INFO("#matched 2D objects: %lu\n", lst.size());
   ROS_INFO("-----------");
   for (int i = 0; i < lst.size(); i++) {
     Frame& f = lst[i];
     std::ostringstream stm;
     stm << i;
     rectangle( rgb_ptr->image, f.p1, f.p2, cv::Scalar(255, 255, 0), 4, 8, 0 );
-    putText(rgb_ptr->image, stm.str(), cv::Point(f.p1.x - 10, f.p1.y - 10), 
+    putText(rgb_ptr->image, stm.str(), cv::Point(f.p1.x - 10, f.p1.y - 10),
             cv::FONT_HERSHEY_COMPLEX_SMALL, 1.5, cv::Scalar(255, 255, 0), 2, CV_AA);
     ROS_INFO("frame score: %f, p1 pos: [%d, %d], index: %d", f.score, f.p1.x, f.p1.y, i);
   }
@@ -108,8 +108,8 @@ void Demor::callback(const sensor_msgs::ImageConstPtr& rgb, const sensor_msgs::I
   for (std::vector<PointCloudC::Ptr>::iterator it = object_clouds.begin(); it != object_clouds.end(); it++) {
     *pcl_cloud += **it;
   }
-  ROS_INFO("#matched 3D objects: %lu", object_clouds.size()); 
-  ROS_INFO("pcl cloud size: %lu\n", pcl_cloud->size());  
+  ROS_INFO("#matched 3D objects: %lu", object_clouds.size());
+  ROS_INFO("pcl cloud size: %lu\n", pcl_cloud->size());
 
   sensor_msgs::PointCloud2 ros_cloud;
   pcl::toROSMsg(*pcl_cloud, ros_cloud);
@@ -123,16 +123,16 @@ void Demor::callback(const sensor_msgs::ImageConstPtr& rgb, const sensor_msgs::I
 void print_usage() {
   std::cout << "\n"
             << "Listens to two sensor_msgs::Image topics and output an annotated version"
-            << "of the rgb scene to /image_out as well as a concatenated pointcloud" 
-            << "containing all matched objects to /generated_cloud.\n" 
+            << "of the rgb scene to /image_out as well as a concatenated pointcloud"
+            << "containing all matched objects to /generated_cloud.\n"
             << "\n"
-            << "Usage: rosrun custom_landmark_2d demo template.jpg rgb:=/topic1 depth:=/topic2 cam_info:=/topic3" 
+            << "Usage: rosrun custom_landmark_2d demo template.jpg rgb:=/topic1 depth:=/topic2 cam_info:=/topic3"
             << std::endl;
 }
 
 int main(int argc, char** argv) {
 
-  if (argc != 5) {
+  if (argc < 5) {
     print_usage();
     return 1;
   }
@@ -153,7 +153,7 @@ int main(int argc, char** argv) {
   // fetch CameraInfo
   demor.camera_info = ros::topic::waitForMessage<sensor_msgs::CameraInfo>("cam_info");
 
-  ROS_INFO("received camear_info...");  
+  ROS_INFO("received camear_info...");
 
   // setup the matcher
   demor.matcher.set_template(templ);
@@ -170,7 +170,7 @@ int main(int argc, char** argv) {
   // ApproximateTime takes a queue size as its constructor argument, hence SyncPolicy(10)
   Synchronizer<SyncPolicy> sync(SyncPolicy(10), rgb_sub, depth_sub);
   sync.registerCallback(boost::bind(&custom_landmark_2d::Demor::callback, &demor, _1, _2));
-  
+
   ros::spin();
 
   return 0;

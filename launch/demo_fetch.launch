@@ -1,0 +1,9 @@
+<launch>
+  <arg name="template" />
+  <node pkg="custom_landmark_2d" type="demo" name="custom_landmark_2d_demo"
+        args="$(arg template)" output="screen">
+    <remap from="rgb" to="/head_camera/rgb/image_raw" />
+    <remap from="depth" to="/head_camera/depth_registered/image_raw" />
+    <remap from="cam_info" to="/head_camera/rgb/camera_info" />
+  </node>
+</launch>
