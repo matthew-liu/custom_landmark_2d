@@ -18,7 +18,7 @@ matcher.set_template(templ);
 matcher.set_cam_model(camera_info);
 
 // this is the threshold for ALL acceptable matching frames,
-// with value ranging from 0.0 to 1.0(perfect match). The default value is 0.68. 
+// with value ranging from 0.0 to 1.0(perfect match). The default value is 0.68.
 // this value is likely needed to be adjusted for optimal results on different objects.
 matcher.match_limit = 0.6;
 
@@ -58,6 +58,12 @@ $ rosrun custom_landmark_2d demo template.jpg rgb:=/topic1 depth:=/topic2 cam_in
 Note that matcher.match_limit is already set as a rosparam in demo_main.cpp, and you can easily tweak its value by typing in terminal:
 \verbatim
 $ rosparam set match_limit [new_value]
+\endverbatim
+
+To make your life easier, two launch files, demo_pr2.launch and demo_fetch.launch are also included in the package, where topic remapping is coded up for you (you can check the exact remapping by looking into the files).
+You can run them like this:
+\verbatim
+$ roslaunch custom_landmark_2d demo_pr2.launch template:=[absolute_path_of_template_file]
 \endverbatim
 
 The template_fetcher.cpp is provided in the package to help saving a template image to current folder from a sensor_msgs::Image topic. You most likely need to crop it manually afterward.
