@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>custom_landmark_2d</name>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
   <description>
     Simple object recognition library for 2D images, with the additional functionality of projecting matched 2D objects to 3D pointclouds.
     A matching alogrithm is used underneath.
